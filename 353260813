@@ -1,0 +1,2514 @@
+menu.add_slider_int("------------ Rage ------------", 1, 1)
+menu.add_check_box("JumpScout")
+menu.add_slider_int("Normal Hitchance", 0, 100)
+menu.add_slider_int("Air Hitchance", 0, 100)
+
+menu.add_slider_int("---------- Anti-Aim ----------", 1, 1)
+menu.add_check_box ("Tank AA")
+menu.add_slider_int ("Offset jitter value", 0, 50)
+menu.add_check_box ("Zero desync angle")
+menu.add_check_box ("Randomized offset")
+menu.add_slider_int ("Min value for randomization", 10, 60)
+menu.add_slider_int ("Max value for randomization", 10, 60)
+
+menu.add_slider_int("------------ Misc ------------", 1, 1)
+local list_names = {
+    'None',
+    'Dallas',
+    'Battle Mask',
+    'Evil Clown',
+    'Anaglyph',
+    'Boar',
+    'Bunny',
+    'Bunny Gold',
+    'Chains',
+    'Chicken',
+    'Devil Plastic',
+    'Hoxton',
+    'Pumpkin',
+    'Samurai',
+    'Sheep Bloody',
+    'Sheep Gold',
+    'Sheep Model',
+    'Skull',
+    'Template',
+    'Wolf',
+    'Doll',
+}
+menu.add_check_box("Leg breaker")
+menu.add_check_box("Pitch 0 on land")
+menu.add_slider_int("Pitch 0 tick", 0, 100)
+menu.add_check_box("Clantag")
+menu.add_check_box("LOGS ENABLE")
+menu.add_color_picker("Logs's Color")
+menu.add_slider_int("Log scale", 10, 40 )
+menu.add_color_picker("Logwatermark's color")
+if menu.get_key_bind_state ("anti_aim.invert_desync_key", true) then
+end
+local font = render.create_font("Verdana", 12, 500, false, true, false)
+menu.add_check_box("Skeet Resolver")
+
+menu.add_slider_int("----------- Visuals -----------", 1, 1)
+menu.add_check_box("Enable keybind list")
+menu.add_slider_int("Key binds position X", 0, engine.get_screen_width())
+menu.add_slider_int("Key binds position Y", 0, engine.get_screen_height())
+menu.add_check_box("Enable China hat") menu.add_color_picker("China hat color")
+menu.add_check_box("China Hat RGB")
+menu.add_slider_int("Hat Radius", 8, 20)
+
+local types = {"always", "holding", "toggled"}
+
+local get_state, get_mode = menu.get_key_bind_state, menu.get_key_bind_mode
+local screen_x, screen_y = engine.get_screen_width(), engine.get_screen_height()
+local count = 0
+
+local function add_bind(name, bind_name, x, y)
+    if get_state(bind_name) then
+        render.draw_text(font, x, y + 22 + (15 * count), color.new(255, 255, 255), name)     
+        text_width = render.get_text_width(font, "[" .. types[get_mode(bind_name) + 1] .. "]")
+      
+        render.draw_text(font, x + 151 - text_width - 5, y + 23 + (15 * count), color.new(255, 255, 255), "[" .. types[get_mode(bind_name) + 1] .. "]")     
+        count = count + 1   
+    end
+end
+
+local function on_paint()
+    if not menu.get_bool("Enable keybind list") then
+        return
+    end
+
+    if not engine.is_in_game() then
+        return
+    end
+
+    local pos_x = menu.get_int("Key binds position X")
+    local pos_y = menu.get_int("Key binds position Y")
+ 
+    render.draw_rect_filled(pos_x, pos_y - 3, 150, 2, color.new(125, 125, 255))
+    render.draw_rect_filled(pos_x, pos_y - 1, 150, 18, color.new(20, 20, 20, 100))
+    render.draw_text(font, pos_x + 55, pos_y + 2, color.new(255, 255, 255), "keybinds")
+    count = 0
+ 
+    add_bind(" 不抬头", "rage.hide_shots_key", pos_x + 1, pos_y - 2)
+    add_bind(" 边缘跳", "misc.edge_jump_key", pos_x + 1, pos_y - 2)
+    add_bind(" 双发", "rage.double_tap_key", pos_x + 1, pos_y - 2)
+    add_bind(" 假走", "misc.slow_walk_key", pos_x + 1, pos_y - 2)
+    add_bind(" 伤害覆盖", "rage.force_damage_key", pos_x + 1, pos_y - 2)
+    add_bind(" 切换假身方向", "anti_aim.invert_desync_key", pos_x + 1, pos_y - 2)
+    add_bind("假蹲", "anti_aim.fake_duck_key", pos_x + 1, pos_y - 2)
+    add_bind(" 自动peek", "misc.automatic_peek_key", pos_x + 1, pos_y - 2)
+    add_bind(" 第三人称", "misc.third_person_key", pos_x + 1, pos_y - 2)
+end
+
+local font = render.create_font( "Verdana", 25, 562, true, true, false )
+local color0 = color.new(132, 195, 16)
+local color1 = color.new(16, 125, 255)
+local color2 = color.new(255, 255, 255)
+local x, y = engine.get_screen_width() / 115 , engine.get_screen_height() / 1.60
+
+local function indicators()
+    if not Crow_lua_loading then return end
+    local is_ingame = engine.is_in_game()
+    local dt = menu.get_key_bind_state( "rage.double_tap_key" )
+    local fd = menu.get_key_bind_state( "anti_aim.fake_duck_key" )
+    local fdmg = menu.get_key_bind_state( "rage.force_damage_key" )
+    local hs = menu.get_key_bind_state( "rage.hide_shots_key" )
+    local ap = menu.get_key_bind_state( "misc.automatic_peek_key" )
+	local f = menu.get_bool("anti_aim.enable_fake_lag")
+
+    if is_ingame then
+        local lp = entitylist.get_local_player()
+        local lp_health  = lp:get_health()
+        if lp_health > 0 then
+
+            if dt then
+                space1 = 25
+                render.draw_text( font, x, y, color2, "DT" )
+            else
+                space1 = 0
+            end
+            if hs then 
+                space2 = 25
+                render.draw_text( font, x, y + space1, color0, "HS" )
+            else
+                space2 = 0
+            end
+            if fdmg then
+                space3 = 25
+                render.draw_text( font, x, y + space1 + space2, color2, "DMG" )
+            else
+                space3 = 0
+            end
+            if fd then
+                space4 = 25
+                render.draw_text( font, x, y + space1 + space2 + space3, color2, "FAKE-DUCK" )
+            else
+                space4 = 0
+            end
+            if ap then
+                space5 = 25
+                render.draw_text( font, x, y + space1 + space2 + space3 + space4, color2, "AUTO-PEEK" )
+            else
+                space5 = 0
+			if f then
+                space6 = 25
+                render.draw_text( font, x, y + space1 + space2 + space3 + space4 + space5, color0, "FL" )
+				space6 = 0
+			    end
+			end
+    	end
+    end
+end
+
+client.add_callback("on_paint", function ()
+    if not Crow_lua_loading then return end
+    if not engine.is_in_game() or not menu.get_bool("Indicators") then return end
+    indicators()
+end)
+
+client.add_callback("on_paint", on_paint)
+local function tankaa()
+    local min = menu.get_int ("Min value for randomization")
+    local max = menu.get_int ("Max value for randomization")
+    local angle = menu.get_int ("Offset jitter value")
+    local rndom = math.random(min, max)
+    local tickcount = globals.get_tickcount() % 3
+    if menu.get_bool ("Tank AA", true) then
+        if menu.get_bool ("Zero desync angle", true) then
+            menu.set_int ("anti_aim.desync_type", 0)
+        else
+            menu.set_int ("anti_aim.desync_type", 1)
+        end
+        menu.set_int ("anti_aim.yaw_modifier", 0)
+        menu.set_int ("anti_aim.desync_range", 28)
+        menu.set_int ("anti_aim.desync_range_inverted", 28)
+        if menu.get_bool ("Randomized offset", true) then
+            if menu.get_bool ("Zero desync angle", true) then
+                if tickcount == 1 then
+                    menu.set_int ("anti_aim.yaw_offset", -rndom)
+                else
+                    menu.set_int ("anti_aim.yaw_offset", rndom)
+                end
+            else
+                if tickcount == 1 then
+                    menu.set_bool ("anti_aim.invert_desync_key", true)
+                else
+                    menu.set_bool ("anti_aim.invert_desync_key", false)
+                end
+
+                if menu.get_bool ("anti_aim.invert_desync_key", true) then
+                    menu.set_int ("anti_aim.yaw_offset", -rndom)
+                else
+                    menu.set_int ("anti_aim.yaw_offset", rndom)
+                end
+            end
+        else
+            if menu.get_bool ("Zero desync angle", true) then
+                if tickcount == 1 then
+                    menu.set_int ("anti_aim.yaw_offset", -angle)
+                else
+                    menu.set_int ("anti_aim.yaw_offset", angle)
+                end
+            else
+                if tickcount == 1 then
+                    menu.set_bool ("anti_aim.invert_desync_key", true)
+                else
+                    menu.set_bool ("anti_aim.invert_desync_key", false)
+                end
+
+                if menu.get_bool ("anti_aim.invert_desync_key", true) then 
+                    menu.set_int ("anti_aim.yaw_offset", -angle)
+                else
+                    menu.set_int ("anti_aim.yaw_offset", angle)
+                end
+            end
+        end
+    end
+end
+
+client.add_callback("create_move", tankaa)
+
+
+local list_names = {
+    'None',
+    'Dallas',
+    'Battle Mask',
+    'Evil Clown',
+    'Anaglyph',
+    'Boar',
+    'Bunny',
+    'Bunny Gold',
+    'Chains',
+    'Chicken',
+    'Devil Plastic',
+    'Hoxton',
+    'Pumpkin',
+    'Samurai',
+    'Sheep Bloody',
+    'Sheep Gold',
+    'Sheep Model',
+    'Skull',
+    'Template',
+    'Wolf',
+    'Doll',
+}
+
+menu.add_combo_box("Mask Changer", list_names)
+local ffi = require('ffi')
+
+local __thiscall = function(func, this)
+    return function(...) return func(this, ...) end
+end
+local interface_ptr = ffi.typeof("void***")
+local vtable_bind = function(module, interface, index, typedef)
+    local addr = ffi.cast("void***", utils.create_interface(module, interface)) or error(interface .. " was not found")
+    return __thiscall(ffi.cast(typedef, addr[0][index]), addr)
+end
+local vtable_entry = function(instance, i, ct)
+    return ffi.cast(ct, ffi.cast(interface_ptr, instance)[0][i])
+end
+local vtable_thunk = function(i, ct)
+    local t = ffi.typeof(ct)
+    return function(instance, ...)
+        return vtable_entry(instance, i, t)(instance, ...)
+    end
+end
+
+local get_class_name = vtable_thunk(143, "const char*(__thiscall*)(void*)")
+local set_model_index = vtable_thunk(75, "void(__thiscall*)(void*,int)")
+
+local get_client_entity_from_handle = vtable_bind("client.dll", "VClientEntityList003", 4, "void*(__thiscall*)(void*,void*)")
+local get_model_index = vtable_bind("engine.dll", "VModelInfoClient004", 2, "int(__thiscall*)(void*, const char*)")
+
+local rawientitylist = utils.create_interface('client.dll', 'VClientEntityList003') or error('VClientEntityList003 was not found', 2)
+
+local ientitylist = ffi.cast(interface_ptr, rawientitylist) or error('rawientitylist is nil', 2)
+local get_client_entity = ffi.cast('void*(__thiscall*)(void*, int)', ientitylist[0][3]) or error('get_client_entity was not found', 2)
+
+local client_string_table_container = ffi.cast(interface_ptr, utils.create_interface('engine.dll', 'VEngineClientStringTable001')) or error('VEngineClientStringTable001 was not found', 2)
+local find_table = vtable_thunk(3, 'void*(__thiscall*)(void*, const char*)')
+
+local model_info = ffi.cast(interface_ptr, utils.create_interface('engine.dll', 'VModelInfoClient004')) or error('VModelInfoClient004 wasnt found', 2)
+
+ffi.cdef [[
+    typedef void(__thiscall* find_or_load_model_t)(void*, const char*);
+]]
+
+local add_string = vtable_thunk(8, "int*(__thiscall*)(void*, bool, const char*, int length, const void* userdata)")
+local find_or_load_model = ffi.cast("find_or_load_model_t", model_info[0][43]) -- vtable thunk crashes (?)
+
+local function _precache(szModelName)
+    if szModelName == "" then return end -- don't precache empty strings (crash)
+    if szModelName == nil then return end
+    szModelName = string.gsub(szModelName, [[\]], [[/]])
+
+    local m_pModelPrecacheTable = find_table(client_string_table_container, "modelprecache")
+    if m_pModelPrecacheTable ~= nil then
+        find_or_load_model(model_info, szModelName)
+        add_string(m_pModelPrecacheTable, false, szModelName, -1, nil)
+    end
+end
+
+
+local models = {
+    '',
+    'models/player/holiday/facemasks/facemask_dallas.mdl',
+    'models/player/holiday/facemasks/facemask_battlemask.mdl',
+    'models/player/holiday/facemasks/evil_clown.mdl',
+    'models/player/holiday/facemasks/facemask_anaglyph.mdl',
+    'models/player/holiday/facemasks/facemask_boar.mdl',
+    'models/player/holiday/facemasks/facemask_bunny.mdl',
+    'models/player/holiday/facemasks/facemask_bunny_gold.mdl',
+    'models/player/holiday/facemasks/facemask_chains.mdl',
+    'models/player/holiday/facemasks/facemask_chicken.mdl',
+    'models/player/holiday/facemasks/facemask_devil_plastic.mdl',
+    'models/player/holiday/facemasks/facemask_hoxton.mdl',
+    'models/player/holiday/facemasks/facemask_pumpkin.mdl',
+    'models/player/holiday/facemasks/facemask_samurai.mdl',
+    'models/player/holiday/facemasks/facemask_sheep_bloody.mdl',
+    'models/player/holiday/facemasks/facemask_sheep_gold.mdl',
+    'models/player/holiday/facemasks/facemask_sheep_model.mdl',
+    'models/player/holiday/facemasks/facemask_skull.mdl',
+    'models/player/holiday/facemasks/facemask_template.mdl',
+    'models/player/holiday/facemasks/facemask_wolf.mdl',
+    'models/player/holiday/facemasks/porcelain_doll.mdl',
+}
+
+local last_model = 0
+
+local model_index = -1
+local enabled = false
+
+local function precache(modelPath)
+    if modelPath == "" then return -1 end -- don't crash.
+    local local_model_index = get_model_index(modelPath)
+    if local_model_index == -1 then
+        _precache(modelPath)
+    end
+    return get_model_index(modelPath)
+end
+
+local function on_paint()
+    if not engine.is_in_game() then
+        last_model = 0
+        return
+    end
+    if last_model ~= menu.get_int("Mask Changer") then
+        last_model = menu.get_int("Mask Changer")
+        if last_model == 0 then
+            enabled = false
+        else
+            enabled = true
+            model_index = precache(models[last_model + 1])
+        end
+    end
+end
+
+client.add_callback("on_paint", on_paint)
+
+local function get_player_address(lp)
+    return get_client_entity(ientitylist, lp:get_index())
+end
+
+function player:addMask()
+    self:set_prop_int("CCSPlayer", "m_iAddonBits", bit.bor(self:get_prop_int("CCSPlayer", "m_iAddonBits"), bit.bor(0x10000, 0x00800)))
+end
+
+client.add_callback( 'create_move', function (cmd)
+    if not engine.is_connected() or not engine.is_in_game() then return end
+    local lp = entitylist.get_local_player()
+    lp:addMask()
+
+    if model_index == -1 then return precache(models[last_model + 1]) end
+
+    local local_player = lp
+    if enabled then
+        local lp_addr = ffi.cast("intptr_t*", get_player_address(local_player))
+        local m_AddonModelsHead = ffi.cast("intptr_t*", lp_addr + 0x462F) -- E8 ? ? ? ? A1 ? ? ? ? 8B CE 8B 40 10
+        local i, next_model = m_AddonModelsHead[0], -1
+
+        while i ~= -1 do
+            next_model = ffi.cast("intptr_t*", lp_addr + 0x462C)[0] + 0x18 * i -- this is the pModel (CAddonModel) afaik
+            i = ffi.cast("intptr_t*", next_model + 0x14)[0]
+            local m_pEnt = ffi.cast("intptr_t**", next_model)[0] -- CHandle<C_BaseAnimating> m_hEnt -> Get()
+            local m_iAddon = ffi.cast("intptr_t*", next_model + 0x4)[0]
+            if tonumber(m_iAddon) == 16 then -- face mask addon bits knife = 10
+                local entity = get_client_entity_from_handle(m_pEnt)
+                set_model_index(entity, model_index)
+            end
+        end
+    end
+end )
+
+client.add_callback('unload', function ()
+    if not engine.is_connected() or not engine.is_in_game() then return end
+    local lp = entitylist.get_local_player()
+    lp:set_prop_int("CCSPlayer", "m_iAddonBits", 1024)
+end)
+
+local Crow_lua_loading = true
+
+client.add_callback("unload", function ()
+    Crow_lua_loading = false
+end)
+
+local ffi = require("ffi")
+
+ffi.cdef[[
+    typedef void*(__thiscall* c_entity_list_get_client_entity_t)(void*, int);
+    struct pose_params_t {
+        char pad[8];
+        float 	m_flStart;
+        float 	m_flEnd;
+        float 	m_flState;
+    };
+]]
+
+
+
+local animbreaker_cache = {}
+local last_time = -1
+local ptr = nil
+local index = -1
+local local_player = nil
+
+local function pointer()
+    if last_time == globals.get_tickcount() then
+        return ptr
+    end
+    ptr = entitylist.get_local_player()
+    if ptr then 
+        index = ptr:get_index()
+    else 
+        index = -1
+    end
+    last_time = globals.get_tickcount()
+    return ptr
+end
+
+local function getindex()
+    pointer()
+    return index
+end
+
+local function bind_argument(fn, arg)
+    return function(...)
+        return fn(arg, ...)
+    end
+end
+
+local get_pose_parameters = ffi.cast("struct pose_params_t*(__thiscall* )( void*, int )", utils.find_signature("client.dll", "55 8B EC 8B 45 08 57 8B F9 8B 4F 04 85 C9 75 15"))
+local get_client_entity = bind_argument(ffi.cast("c_entity_list_get_client_entity_t", ffi.cast(ffi.typeof("uintptr_t**"), utils.create_interface("client.dll", "VClientEntityList003"))[0][3]), ffi.cast(ffi.typeof("uintptr_t**"), utils.create_interface("client.dll", "VClientEntityList003")))
+
+
+local function animbreaker_set_params(player_ptr, layer, start_val, end_val)
+
+
+    player_ptr = ffi.cast("unsigned int", player_ptr)
+    if player_ptr == 0x0 then
+        return false
+    end
+    local studio_hdr = ffi.cast("void**", player_ptr + 0x2950)[0]
+    if studio_hdr == nil then
+        return false
+    end
+    local pose_params = get_pose_parameters(studio_hdr, layer)
+    if pose_params == nil or pose_params == 0x0 then
+        return
+    end
+    if animbreaker_cache[layer] == nil then
+        animbreaker_cache[layer] = {}
+        animbreaker_cache[layer].m_flStart = pose_params.m_flStart
+        animbreaker_cache[layer].m_flEnd = pose_params.m_flEnd
+        animbreaker_cache[layer].m_flState = pose_params.m_flState
+        animbreaker_cache[layer].installed = false
+        return true
+    end
+    if start_val ~= nil and not animbreaker_cache[layer].installed then
+        pose_params.m_flStart = start_val
+        pose_params.m_flEnd = end_val
+        pose_params.m_flState = (pose_params.m_flStart + pose_params.m_flEnd) / 2
+        animbreaker_cache[layer].installed = true
+        return true
+    end
+    if animbreaker_cache[layer].installed then
+        pose_params.m_flStart = animbreaker_cache[layer].m_flStart
+        pose_params.m_flEnd = animbreaker_cache[layer].m_flEnd
+        pose_params.m_flState = animbreaker_cache[layer].m_flState
+        animbreaker_cache[layer].installed = false
+        return true
+    end
+    return false
+end
+
+local function animbreaker_handle_prediction(cmd)
+    local_player = get_client_entity(getindex())
+    if local_player == nil then
+        return
+    end
+
+
+    if menu.get_bool("Leg breaker") then
+        animbreaker_set_params(local_player, 0, -180, -179)
+        menu.set_int("misc.leg_movement", 2)
+    end
+end
+local function animbreaker_handle_cmove()
+    local local_player = get_client_entity(getindex())
+    if local_player == nil then
+        return
+    end
+    for k, v in pairs(animbreaker_cache) do
+        animbreaker_set_params(local_player, k)
+    end
+end
+local function animbreaker_on_unload()
+    local local_player = get_client_entity(getindex())
+    if local_player == nil then
+        return
+    end
+    for k, v in pairs(animbreaker_cache) do
+        animbreaker_set_params(local_player, k)
+    end
+end
+client.add_callback("create_move", function ()
+    if not Crow_lua_loading then return end
+    animbreaker_handle_cmove()
+end)
+client.add_callback("create_move", function (cmd)
+    if not Crow_lua_loading then return end
+    animbreaker_handle_prediction(cmd)
+end)
+client.add_callback("unload", function ()
+    animbreaker_on_unload()
+end)
+
+
+
+local ground_tick = 1
+local end_tick = 0
+
+local function pitch0()
+    local inAir = entitylist.get_local_player():get_prop_int("CBasePlayer", "m_vecVelocity[2]") ~= 0
+    local curtick = globals.get_tickcount()
+    if inAir == true then
+        ground_tick = 0
+        end_tick = curtick + menu.get_int("Pitch 0 tick")
+    else
+        ground_tick = ground_tick + 1
+    end
+    if ground_tick > 1 and end_tick > curtick then
+        animbreaker_set_params(local_player, 12, 0.999, 1)
+    end
+end
+
+client.add_callback("create_move", function ()
+    if not Crow_lua_loading then return end
+    if not entitylist.get_local_player() or not menu.get_bool("Pitch 0 on land") then
+        return
+    end
+    pitch0()
+end)
+
+local clantag = {
+    "g",
+    "ga",
+    "gam",
+    "game",
+    "games",
+    "gamese",
+    "gamesen",
+    "gamesene",
+    "gamesenes",
+    "gamesenese",
+    "gamesenes",
+    "gamesene",
+    "gamesen",
+    "gamese",
+    "games",
+    "game",
+    "gam",
+    "ga",
+    "g",
+}
+
+
+local nothing = {
+    "",
+}
+
+
+local log_messages = {}
+local hitlog_font = render.create_font("Smallest Pixel-7", 11, 150, true, true, true)
+
+
+
+
+
+-- functions
+local function custom_colors()
+if menu.get_bool("LOGS ENABLE") then
+local color = menu.get_color("Logs's Color")
+r = color:r()
+g = color:g()
+b = color:b()
+local color2 = menu.get_color("Logwatermark's color")
+r2 = color2:r()
+g2 = color2:g()
+b2 = color2:b()
+
+end
+end
+
+function register_message(text)
+    table.insert(log_messages, {message = text, alpha = 0, creation_time = globals.get_realtime()})
+end
+
+
+
+
+
+
+local function shot_for_event_logs(shot_info)
+  local result = shot_info.result
+ 
+   local gpinf = engine.get_player_info
+   local target = shot_info.target_index
+   local target_name = gpinf(target).name
+ 
+if result == "Hit" then
+        local message = " hit player " .. target_name .. " 's ".. shot_info.server_hitbox .. " for " .. shot_info.server_damage .. " hp (predicted: ".. shot_info.client_hitbox .. " for " .. shot_info.client_damage .. " hp)"
+   
+        register_message(message)
+   
+        elseif result == "Resolver" then
+            register_message(" missed shot at " ..  target_name .. "due to desync [ backtrack: " .. shot_info.backtrack_ticks .. " ticks]")
+        else
+            register_message(" missed shot at ".. target_name .. " due to spread [accuracy: ".. shot_info.hitchance .."]")
+        end
+
+end
+
+
+
+
+local function draw_event_logs()
+    local screen_width = engine.get_screen_width()
+    local screen_height = engine.get_screen_height()
+
+    local distance_to_add = 0
+    local last_render_position = 10
+    local timeNow = globals.get_realtime()
+    custom_colors()
+    for i = 1, #log_messages
+    do
+        if not(log_messages[i] == nil) then
+            if(log_messages[i].creation_time > timeNow) or  (log_messages[i].alpha <= 0 and timeNow - log_messages[i].creation_time > 2) then
+                table.remove(log_messages, i)
+            else
+            if(i >= 15) then
+                    log_messages[i].creation_time = timeNow
+                end
+
+                if(log_messages[i].alpha < 255) and (timeNow - log_messages[i].creation_time < 5) and (i < 15) then
+                    log_messages[i].alpha = log_messages[i].alpha + 5
+                end
+
+                if(timeNow - log_messages[i].creation_time > 5) and (log_messages[i].alpha > 0) then
+                    log_messages[i].alpha = log_messages[i].alpha - 5
+                end
+
+                if(log_messages[i].alpha > 0) then
+
+                    local text_size = render.get_text_width( hitlog_font, log_messages[i].message )
+
+                    local distance_modifier = log_messages[i].alpha / 255
+
+                    render.draw_text( hitlog_font, screen_width/2 - 200 , screen_height/2 + last_render_position + distance_to_add + 200, color.new(r, g, b, log_messages[i].alpha), log_messages[i].message )
+                    render.draw_text( hitlog_font, screen_width/2 - 240 , screen_height/2 + last_render_position + distance_to_add + 200, color.new(r2,g2, b2, log_messages[i].alpha), "[Legendware]")
+       
+
+
+                    last_render_position = last_render_position + distance_to_add
+                    distance_to_add = menu.get_int("Log scale") * distance_modifier
+
+                end
+
+            end
+        end
+    end
+end
+
+
+
+local function jumpscout()
+
+    local inAir = entitylist.get_local_player():get_prop_int("CBasePlayer", "m_fFlags") == 256
+    local normalhitchance =menu.get_int("Normal Hitchance")
+    local airhitchance = menu.get_int("Air Hitchance")
+   
+     if(menu.get_bool("JumpScout")) then
+        if inAir then
+           menu.set_int(string.format("rage.weapon[3].hit_chance"), airhitchance)
+      else
+           menu.set_int(string.format("rage.weapon[3].hit_chance"), normalhitchance)
+          end
+      end     
+  end
+  
+  client.add_callback("create_move",jumpscout)
+
+
+client.add_callback("on_paint", draw_event_logs)
+client.add_callback("on_shot", shot_for_event_logs)
+
+
+
+local ffi = require("ffi")
+require('betterapi')
+
+local Helpers = {}
+local renderer = {}
+local Render = {}
+
+local cos = math.cos
+local sin = math.sin
+
+Helpers = {
+    draw_hat = function(from, pos, radius, segments, color)
+        local points = {from}
+        local last_point = nil
+        local step = math.pi * 1 / segments
+        for a = 0, math.pi * 2, step do
+            local startvec = vector.new(radius * cos(a) + pos.x, radius * sin(a) + pos.y, pos.z)
+            local endpvec = vector.new(radius * cos(a + step) + pos.x, radius * sin(a + step) + pos.y, pos.z)
+            local start = render.world_to_screen(startvec)
+            local endp = render.world_to_screen(endpvec)
+            if start and endp then
+                render.draw_line(start.x, endp.y - 1, endp.x, endp.y + 1, color)
+                render.draw_line(endp.x, start.y - 1, start.x, start.y + 1, color)
+                points[#points+1] = start
+                last_point = endp
+            end
+        end
+        if last_point then
+            points[#points+1] = last_point
+            draw.polygon(points, false, color:r(), color:g(), color:b(), 100)
+        end
+    end,
+        rgb = function()
+            local r = math.floor(math.sin(globals.get_realtime() * 4) * 90 + 165)
+            local g = math.floor(math.sin(globals.get_realtime() * 4 + 2) * 90 + 165)
+            local b = math.floor(math.sin(globals.get_realtime() * 4 + 4) * 90 + 165)
+        return { r = r, g = g, b = b }
+    end,
+}
+
+Render = {
+    main = function()
+        if menu.get_bool("Enable China hat") then
+
+        local LocalPlayer = entitylist.get_local_player()
+        if not LocalPlayer then return end
+
+        local LocalIsAlive = LocalPlayer:is_alive()
+        if not LocalIsAlive then return end
+    
+        local ThirdPerson = menu.get_key_bind_state('misc.third_person_key')
+        if not ThirdPerson then return end
+
+            local headpos = LocalPlayer:gethitboxpos(0)
+
+            local high_pos = vector.new(headpos.x, headpos.y, headpos.z + 8)
+            local low_pos = vector.new(headpos.x, headpos.y, headpos.z)
+            local w2s = render.world_to_screen(high_pos)
+
+            local rgb = Helpers.rgb()
+            local accent = menu.get_color("China hat color")
+            local real_color
+            local radiuss = menu.get_int("Hat Radius")
+
+            if menu.get_bool("China Hat RGB") then
+                real_color = color.new(rgb.r, rgb.g, rgb.b, 255)
+            else
+                real_color = accent
+            end
+
+            if w2s then
+                Helpers.draw_hat(w2s, low_pos, radiuss, 75, real_color)
+            end
+        end
+    end,
+
+}
+
+client.add_callback("on_paint", Render.main)
+
+local ffi = require  ("ffi")
+
+ffi.cdef[[
+    typedef uintptr_t (__thiscall* GetClientEntity_4242425_t)(void*, int);
+
+    typedef struct
+    {
+        float x;
+        float y;
+        float z;
+    } Vector_t;
+
+    typedef struct
+    {
+        char        pad0[0x60]; // 0x00
+        void*       pEntity; // 0x60
+        void*       pActiveWeapon; // 0x64
+        void*       pLastActiveWeapon; // 0x68
+        float        flLastUpdateTime; // 0x6C
+        int            iLastUpdateFrame; // 0x70
+        float        flLastUpdateIncrement; // 0x74
+        float        flEyeYaw; // 0x78
+        float        flEyePitch; // 0x7C
+        float        flGoalFeetYaw; // 0x80
+        float        flLastFeetYaw; // 0x84
+        float        flMoveYaw; // 0x88
+        float        flLastMoveYaw; // 0x8C // changes when moving/jumping/hitting ground
+        float        flLeanAmount; // 0x90
+        char        pad1[0x4]; // 0x94
+        float        flFeetCycle; // 0x98 0 to 1
+        float        flMoveWeight; // 0x9C 0 to 1
+        float        flMoveWeightSmoothed; // 0xA0
+        float        flDuckAmount; // 0xA4
+        float        flHitGroundCycle; // 0xA8
+        float        flRecrouchWeight; // 0xAC
+        Vector_t    vecOrigin; // 0xB0
+        Vector_t    vecLastOrigin;// 0xBC
+        Vector_t    vecVelocity; // 0xC8
+        Vector_t    vecVelocityNormalized; // 0xD4
+        Vector_t    vecVelocityNormalizedNonZero; // 0xE0
+        float        flVelocityLenght2D; // 0xEC
+        float        flJumpFallVelocity; // 0xF0
+        float        flSpeedNormalized; // 0xF4 // clamped velocity from 0 to 1
+        float        flRunningSpeed; // 0xF8
+        float        flDuckingSpeed; // 0xFC
+        float        flDurationMoving; // 0x100
+        float        flDurationStill; // 0x104
+        bool        bOnGround; // 0x108
+        bool        bHitGroundAnimation; // 0x109
+        char        pad2[0x2]; // 0x10A
+        float        flNextLowerBodyYawUpdateTime; // 0x10C
+        float        flDurationInAir; // 0x110
+        float        flLeftGroundHeight; // 0x114
+        float        flHitGroundWeight; // 0x118 // from 0 to 1, is 1 when standing
+        float        flWalkToRunTransition; // 0x11C // from 0 to 1, doesnt change when walking or crouching, only running
+        char        pad3[0x4]; // 0x120
+        float        flAffectedFraction; // 0x124 // affected while jumping and running, or when just jumping, 0 to 1
+        char        pad4[0x208]; // 0x128
+        float        flMinBodyYaw; // 0x330
+        float        flMaxBodyYaw; // 0x334
+        float        flMinPitch; //0x338
+        float        flMaxPitch; // 0x33C
+        int            iAnimsetVersion; // 0x340
+    } CCSGOPlayerAnimationState_534535_t;
+]]
+
+local entity_list_ptr = ffi.cast("void***", utils.create_interface("client.dll", "VClientEntityList003"))
+local get_client_entity_fn = ffi.cast("GetClientEntity_4242425_t", entity_list_ptr[0][3])
+
+local ffi_helpers = {
+    get_entity_address = function(ent_index)
+        local addr = get_client_entity_fn(entity_list_ptr, ent_index)
+        return addr
+    end
+}
+
+
+local offset_value = 0x9960
+local shared_onground
+
+client.add_callback("on_paint", function()
+    local localplayer = entitylist.get_local_player()
+    if not localplayer then return end
+
+    local bOnGround = bit.band(localplayer:get_prop_float("CBasePlayer", "m_fFlags"), bit.lshift(1,0)) ~= 0
+    if not bOnGround then
+        ffi.cast("CCSGOPlayerAnimationState_534535_t**", ffi_helpers.get_entity_address(localplayer:get_index()) + offset_value)[0].flDurationInAir = 99
+        ffi.cast("CCSGOPlayerAnimationState_534535_t**", ffi_helpers.get_entity_address(localplayer:get_index()) + offset_value)[0].flHitGroundCycle = 0
+        ffi.cast("CCSGOPlayerAnimationState_534535_t**", ffi_helpers.get_entity_address(localplayer:get_index()) + offset_value)[0].bHitGroundAnimation = false
+    end
+
+    shared_onground = bOnGround
+end)
+
+client.add_callback("on_paint", function()
+    local localplayer = entitylist.get_local_player()
+    if not localplayer then return end
+
+    local bOnGround = bit.band(localplayer:get_prop_float("CBasePlayer", "m_fFlags"), bit.lshift(1,0)) ~= 0
+    if bOnGround and not shared_onground then
+        ffi.cast("CCSGOPlayerAnimationState_534535_t**", ffi_helpers.get_entity_address(localplayer:get_index()) + offset_value)[0].flDurationInAir = 0.5
+    end 
+end)
+
+
+
+local ffi = require("ffi")
+
+
+
+local g_VGuiSurface = ffi.cast(ffi.typeof("void***"), utils.create_interface("vguimatsurface.dll", "VGUI_Surface031"))
+
+
+
+
+
+local play_sound = ffi.cast(ffi.typeof('void(__thiscall*)(void*, const char*)'), g_VGuiSurface[0][82])
+
+
+
+local function custom_hitsound(event)
+
+    local attacker = event:get_int("attacker")
+
+    local attacker_idx = engine.get_player_for_user_id(attacker)
+
+
+
+    if attacker_idx ~= engine.get_local_player_index() then
+
+        return
+
+    end
+
+
+
+    play_sound(g_VGuiSurface, "neverlose.wav")
+
+end
+
+
+
+events.register_event("player_hurt", custom_hitsound)
+
+--shit paste
+
+local font = render.create_font( "Verdana", 25, 562, true, true, false )
+local color0 = color.new(132, 195, 16)
+local color1 = color.new(16, 125, 255)
+local color2 = color.new(255, 255, 255)
+local x, y = engine.get_screen_width() / 115 , engine.get_screen_height() / 1.60
+
+local function indicators()
+    local is_ingame = engine.is_in_game()
+    local dt = menu.get_key_bind_state( "rage.double_tap_key" )
+    local fd = menu.get_key_bind_state( "anti_aim.fake_duck_key" )
+    local dmg = menu.get_key_bind_state( "rage.force_damage_key" )
+    local hs = menu.get_key_bind_state( "rage.hide_shots_key" )
+    local ap = menu.get_key_bind_state( "misc.automatic_peek_key" )
+	local f = menu.get_bool("anti_aim.enable_fake_lag")
+
+    if is_ingame then
+        local lp = entitylist.get_local_player()
+        local lp_health  = lp:get_health()
+        if lp_health > 0 then
+
+            if dt then
+                space1 = 25
+                render.draw_text( font, x, y, color2, "DT" )
+            else
+                space1 = 0
+            end
+            if hs then 
+                space2 = 25
+                render.draw_text( font, x, y + space1, color0, "ONSHOT" )
+            else
+                space2 = 0
+            end
+            if dmg then
+                space3 = 25
+                render.draw_text( font, x, y + space1 + space2, color2, "DMG" )
+            else
+                space3 = 0
+            end
+            if fd then
+                space4 = 25
+                render.draw_text( font, x, y + space1 + space2 + space3, color2, "DUCK" )
+            else
+                space4 = 0
+            end
+            if ap then
+                space5 = 25
+                render.draw_text( font, x, y + space1 + space2 + space3 + space4, color2, "QUICK-PEEK" )
+            else
+                space5 = 0
+			if f then
+                space6 = 25
+                render.draw_text( font, x, y + space1 + space2 + space3 + space4 + space5, color0, "DA" )
+				space6 = 0
+			    end
+			end
+    	end
+    end
+end
+client.add_callback( "on_paint", indicators )
+
+
+local angles = {
+    [1] = 0,
+    [2] = 15,
+    [3] = -15,
+    [4] = 0,
+    [5] = 0,
+    [6] = 0,
+    [7] =15,
+    [8] = 0,
+    [9] = 0,
+    [10] = 0,
+    [11] = 0,
+    [12] = 0,
+    [13] = 0,
+    [14] = 0,
+    [15] = 0,
+    [16] = 0
+}
+
+local bit_band = bit.band
+local math_pi   = math.pi
+local math_min  = math.min
+local math_max  = math.max
+local math_deg  = math.deg
+local math_rad  = math.rad
+local math_sqrt = math.sqrt
+local math_sin  = math.sin
+local math_cos  = math.cos
+local math_atan = math.atan
+local math_atan2 = math.atan2
+local math_acos = math.acos
+local math_fmod = math.fmod
+local math_ceil = math.ceil
+local math_pow = math.pow
+local math_abs = math.abs
+local math_floor = math.floor
+local last_angle = 1
+local new_angle = 1
+local last_angle = 0
+local new_angle = 0
+local switch1 = true
+local switch2 = false
+local i = 1
+local username = globals.get_username()
+
+
+
+
+local function resolve(shot_info)
+	local result = shot_info.result
+	local gpinf = engine.get_player_info
+	local target = shot_info.target_index
+	local target_name = gpinf(target).name
+
+menu.set_bool("player_list.player_settings[" .. target.. "].force_body_yaw", false) -- we only want to bruteforce our target. not everyone
+    
+    if last_angle == -new_angle and switch1 then
+        new_angle = -angles[i]
+        if switch2 == true then
+            switch1 = not switch1
+        end
+    else
+        if i < #angles then
+            i = i + 1
+        else
+            i = 1
+        end
+        new_angle = angles[i]
+    end
+    if last_angle == 0 then
+        last_angle = "RESOLVER"
+    end
+
+
+	if result == "Resolver" and menu.get_bool("Enable Resolver lua") then
+	print("[LEGENDWARE] missed player: " ..target_name .. ", at angle: " .. last_angle .. ", bruteforced to: " .. new_angle) 
+    
+	menu.set_int("player_list.player_settings["..target.."].body_yaw", new_angle) 
+    end
+
+    if result == "Hit" and menu.get_bool("Enable Resolver lua") then
+        print("[LEGENDWARE] hit player " ..target_name.. ", at angle: " .. new_angle)
+    end
+
+
+local function set_all_down()
+    local all = globals.get_maxclients()
+
+    if menu.get_bool("force all players down") then
+        for nigger=1,48 do
+        menu.set_bool("player_list.player_settings[" ..nigger.. "].force_pitch", true)
+        menu.set_int("player_list.player_settings[" ..nigger.. "].pitch", 89)
+        end
+    end
+end
+
+client.add_callback("on_shot", resolve)
+client.add_callback("on_paint", set_all_down)
+
+if username == "User" then
+    console.execute("sv_lan 1")
+else
+end
+end
+--region math
+function math.round(number, precision)
+	local mult = 10 ^ (precision or 0)
+
+	return math.floor(number * mult + 0.5) / mult
+end
+--endregion
+
+--region angle
+--- @class angle_c
+--- @field public p number Angle pitch.
+--- @field public y number Angle yaw.
+--- @field public r number Angle roll.
+local angle_c = {}
+local angle_mt = {
+	__index = angle_c
+}
+
+--- Overwrite the angle's angles. Nil values leave the angle unchanged.
+--- @param angle angle_c
+--- @param p_new number
+--- @param y_new number
+--- @param r_new number
+--- @return void
+angle_mt.__call = function(angle, p_new, y_new, r_new)
+	p_new = p_new or angle.p
+	y_new = y_new or angle.y
+	r_new = r_new or angle.r
+
+	angle.p = p_new
+	angle.y = y_new
+	angle.r = r_new
+end
+
+--- Create a new angle object.
+--- @param p number
+--- @param y number
+--- @param r number
+--- @return angle_c
+local function angle(p, y, r)
+	return setmetatable(
+		{
+			p = p or 0,
+			y = y or 0,
+			r = r or 0
+		},
+		angle_mt
+	)
+end
+
+--- Overwrite the angle's angles. Nil values leave the angle unchanged.
+--- @param p number
+--- @param y number
+--- @param r number
+--- @return void
+function angle_c:set(p, y, r)
+	p = p or self.p
+	y = y or self.y
+	r = r or self.r
+
+	self.p = p
+	self.y = y
+	self.r = r
+end
+
+--- Offset the angle's angles. Nil values leave the angle unchanged.
+--- @param p number
+--- @param y number
+--- @param r number
+--- @return void
+function angle_c:offset(p, y, r)
+	p = self.p + p or 0
+	y = self.y + y or 0
+	r = self.r + r or 0
+
+	self.p = self.p + p
+	self.y = self.y + y
+	self.r = self.r + r
+end
+
+--- Clone the angle object.
+--- @return angle_c
+function angle_c:clone()
+	return setmetatable(
+		{
+			p = self.p,
+			y = self.y,
+			r = self.r
+		},
+		angle_mt
+	)
+end
+
+--- Clone and offset the angle's angles. Nil values leave the angle unchanged.
+--- @param p number
+--- @param y number
+--- @param r number
+--- @return angle_c
+function angle_c:clone_offset(p, y, r)
+	p = self.p + p or 0
+	y = self.y + y or 0
+	r = self.r + r or 0
+
+	return angle(
+		self.p + p,
+		self.y + y,
+		self.r + r
+	)
+end
+
+--- Clone the angle and optionally override its coordinates.
+--- @param p number
+--- @param y number
+--- @param r number
+--- @return angle_c
+function angle_c:clone_set(p, y, r)
+	p = p or self.p
+	y = y or self.y
+	r = r or self.r
+
+	return angle(
+		p,
+		y,
+		r
+	)
+end
+
+--- Unpack the angle.
+--- @return number, number, number
+function angle_c:unpack()
+	return self.p, self.y, self.r
+end
+
+--- Set the angle's euler angles to 0.
+--- @return void
+function angle_c:nullify()
+	self.p = 0
+	self.y = 0
+	self.r = 0
+end
+
+--- Returns a string representation of the angle.
+function angle_mt.__tostring(operand_a)
+	return string.format("%s, %s, %s", operand_a.p, operand_a.y, operand_a.r)
+end
+
+--- Concatenates the angle in a string.
+function angle_mt.__concat(operand_a)
+	return string.format("%s, %s, %s", operand_a.p, operand_a.y, operand_a.r)
+end
+
+--- Adds the angle to another angle.
+function angle_mt.__add(operand_a, operand_b)
+	if (type(operand_a) == "number") then
+		return angle(
+			operand_a + operand_b.p,
+			operand_a + operand_b.y,
+			operand_a + operand_b.r
+		)
+	end
+
+	if (type(operand_b) == "number") then
+		return angle(
+			operand_a.p + operand_b,
+			operand_a.y + operand_b,
+			operand_a.r + operand_b
+		)
+	end
+
+	return angle(
+		operand_a.p + operand_b.p,
+		operand_a.y + operand_b.y,
+		operand_a.r + operand_b.r
+	)
+end
+
+--- Subtracts the angle from another angle.
+function angle_mt.__sub(operand_a, operand_b)
+	if (type(operand_a) == "number") then
+		return angle(
+			operand_a - operand_b.p,
+			operand_a - operand_b.y,
+			operand_a - operand_b.r
+		)
+	end
+
+	if (type(operand_b) == "number") then
+		return angle(
+			operand_a.p - operand_b,
+			operand_a.y - operand_b,
+			operand_a.r - operand_b
+		)
+	end
+
+	return angle(
+		operand_a.p - operand_b.p,
+		operand_a.y - operand_b.y,
+		operand_a.r - operand_b.r
+	)
+end
+
+--- Multiplies the angle with another angle.
+function angle_mt.__mul(operand_a, operand_b)
+	if (type(operand_a) == "number") then
+		return angle(
+			operand_a * operand_b.p,
+			operand_a * operand_b.y,
+			operand_a * operand_b.r
+		)
+	end
+
+	if (type(operand_b) == "number") then
+		return angle(
+			operand_a.p * operand_b,
+			operand_a.y * operand_b,
+			operand_a.r * operand_b
+		)
+	end
+
+	return angle(
+		operand_a.p * operand_b.p,
+		operand_a.y * operand_b.y,
+		operand_a.r * operand_b.r
+	)
+end
+
+--- Divides the angle by the another angle.
+function angle_mt.__div(operand_a, operand_b)
+	if (type(operand_a) == "number") then
+		return angle(
+			operand_a / operand_b.p,
+			operand_a / operand_b.y,
+			operand_a / operand_b.r
+		)
+	end
+
+	if (type(operand_b) == "number") then
+		return angle(
+			operand_a.p / operand_b,
+			operand_a.y / operand_b,
+			operand_a.r / operand_b
+		)
+	end
+
+	return angle(
+		operand_a.p / operand_b.p,
+		operand_a.y / operand_b.y,
+		operand_a.r / operand_b.r
+	)
+end
+
+--- Raises the angle to the power of an another angle.
+function angle_mt.__pow(operand_a, operand_b)
+	if (type(operand_a) == "number") then
+		return angle(
+			math.pow(operand_a, operand_b.p),
+			math.pow(operand_a, operand_b.y),
+			math.pow(operand_a, operand_b.r)
+		)
+	end
+
+	if (type(operand_b) == "number") then
+		return angle(
+			math.pow(operand_a.p, operand_b),
+			math.pow(operand_a.y, operand_b),
+			math.pow(operand_a.r, operand_b)
+		)
+	end
+
+	return angle(
+		math.pow(operand_a.p, operand_b.p),
+		math.pow(operand_a.y, operand_b.y),
+		math.pow(operand_a.r, operand_b.r)
+	)
+end
+
+--- Performs modulo on the angle with another angle.
+function angle_mt.__mod(operand_a, operand_b)
+	if (type(operand_a) == "number") then
+		return angle(
+			operand_a % operand_b.p,
+			operand_a % operand_b.y,
+			operand_a % operand_b.r
+		)
+	end
+
+	if (type(operand_b) == "number") then
+		return angle(
+			operand_a.p % operand_b,
+			operand_a.y % operand_b,
+			operand_a.r % operand_b
+		)
+	end
+
+	return angle(
+		operand_a.p % operand_b.p,
+		operand_a.y % operand_b.y,
+		operand_a.r % operand_b.r
+	)
+end
+
+--- Perform a unary minus operation on the angle.
+function angle_mt.__unm(operand_a)
+	return angle(
+		-operand_a.p,
+		-operand_a.y,
+		-operand_a.r
+	)
+end
+
+--- Clamps the angles to whole numbers. Equivalent to "angle:round" with no precision.
+--- @return void
+function angle_c:round_zero()
+	self.p = math.floor(self.p + 0.5)
+	self.y = math.floor(self.y + 0.5)
+	self.r = math.floor(self.r + 0.5)
+end
+
+--- Round the angles.
+--- @param precision number
+function angle_c:round(precision)
+	self.p = math.round(self.p, precision)
+	self.y = math.round(self.y, precision)
+	self.r = math.round(self.r, precision)
+end
+
+--- Clamps the angles to the nearest base.
+--- @param base number
+function angle_c:round_base(base)
+	self.p = base * math.round(self.p / base)
+	self.y = base * math.round(self.y / base)
+	self.r = base * math.round(self.r / base)
+end
+
+--- Clamps the angles to whole numbers. Equivalent to "angle:round" with no precision.
+--- @return angle_c
+function angle_c:rounded_zero()
+	return angle(
+		math.floor(self.p + 0.5),
+		math.floor(self.y + 0.5),
+		math.floor(self.r + 0.5)
+	)
+end
+
+--- Round the angles.
+--- @param precision number
+--- @return angle_c
+function angle_c:rounded(precision)
+	return angle(
+		math.round(self.p, precision),
+		math.round(self.y, precision),
+		math.round(self.r, precision)
+	)
+end
+
+--- Clamps the angles to the nearest base.
+--- @param base number
+--- @return angle_c
+function angle_c:rounded_base(base)
+	return angle(
+		base * math.round(self.p / base),
+		base * math.round(self.y / base),
+		base * math.round(self.r / base)
+	)
+end
+--endregion
+
+--region vector
+--- @class vector_c
+--- @field public x number X coordinate.
+--- @field public y number Y coordinate.
+--- @field public z number Z coordinate.
+local vector_c = {}
+local vector_mt = {
+	__index = vector_c,
+}
+
+--- Overwrite the vector's coordinates. Nil will leave coordinates unchanged.
+--- @param vector vector_c
+--- @param x_new number
+--- @param y_new number
+--- @param z_new number
+--- @return void
+vector_mt.__call = function(vector, x_new, y_new, z_new)
+	x_new = x_new or vector.x
+	y_new = y_new or vector.y
+	z_new = z_new or vector.z
+
+	vector.x = x_new
+	vector.y = y_new
+	vector.z = z_new
+end
+
+--- Create a new vector object.
+--- @param x number
+--- @param y number
+--- @param z number
+--- @return vector_c
+local function vector(x, y, z)
+	return setmetatable(
+		{
+			x = x or 0,
+			y = y or 0,
+			z = z or 0
+		},
+		vector_mt
+	)
+end
+
+--- Overwrite the vector's coordinates. Nil will leave coordinates unchanged.
+--- @param x_new number
+--- @param y_new number
+--- @param z_new number
+--- @return void
+function vector_c:set(x_new, y_new, z_new)
+	x_new = x_new or self.x
+	y_new = y_new or self.y
+	z_new = z_new or self.z
+
+	self.x = x_new
+	self.y = y_new
+	self.z = z_new
+end
+
+--- Offset the vector's coordinates. Nil will leave the coordinates unchanged.
+--- @param x_offset number
+--- @param y_offset number
+--- @param z_offset number
+--- @return void
+function vector_c:offset(x_offset, y_offset, z_offset)
+	x_offset = x_offset or 0
+	y_offset = y_offset or 0
+	z_offset = z_offset or 0
+
+	self.x = self.x + x_offset
+	self.y = self.y + y_offset
+	self.z = self.z + z_offset
+end
+
+--- Clone the vector object.
+--- @return vector_c
+function vector_c:clone()
+	return setmetatable(
+		{
+			x = self.x,
+			y = self.y,
+			z = self.z
+		},
+		vector_mt
+	)
+end
+
+--- Clone the vector object and offset its coordinates. Nil will leave the coordinates unchanged.
+--- @param x_offset number
+--- @param y_offset number
+--- @param z_offset number
+--- @return vector_c
+function vector_c:clone_offset(x_offset, y_offset, z_offset)
+	x_offset = x_offset or 0
+	y_offset = y_offset or 0
+	z_offset = z_offset or 0
+
+	return setmetatable(
+		{
+			x = self.x + x_offset,
+			y = self.y + y_offset,
+			z = self.z + z_offset
+		},
+		vector_mt
+	)
+end
+
+--- Clone the vector and optionally override its coordinates.
+--- @param x_new number
+--- @param y_new number
+--- @param z_new number
+--- @return vector_c
+function vector_c:clone_set(x_new, y_new, z_new)
+	x_new = x_new or self.x
+	y_new = y_new or self.y
+	z_new = z_new or self.z
+
+	return vector(
+		x_new,
+		y_new,
+		z_new
+	)
+end
+
+--- Unpack the vector.
+--- @return number, number, number
+function vector_c:unpack()
+	return self.x, self.y, self.z
+end
+
+--- Set the vector's coordinates to 0.
+--- @return void
+function vector_c:nullify()
+	self.x = 0
+	self.y = 0
+	self.z = 0
+end
+
+--- Returns a string representation of the vector.
+function vector_mt.__tostring(operand_a)
+	return string.format("%s, %s, %s", operand_a.x, operand_a.y, operand_a.z)
+end
+
+--- Concatenates the vector in a string.
+function vector_mt.__concat(operand_a)
+	return string.format("%s, %s, %s", operand_a.x, operand_a.y, operand_a.z)
+end
+
+--- Returns true if the vector's coordinates are equal to another vector.
+function vector_mt.__eq(operand_a, operand_b)
+	return (operand_a.x == operand_b.x) and (operand_a.y == operand_b.y) and (operand_a.z == operand_b.z)
+end
+
+--- Returns true if the vector is less than another vector.
+function vector_mt.__lt(operand_a, operand_b)
+	if (type(operand_a) == "number") then
+		return (operand_a < operand_b.x) or (operand_a < operand_b.y) or (operand_a < operand_b.z)
+	end
+
+	if (type(operand_b) == "number") then
+		return (operand_a.x < operand_b) or (operand_a.y < operand_b) or (operand_a.z < operand_b)
+	end
+
+	return (operand_a.x < operand_b.x) or (operand_a.y < operand_b.y) or (operand_a.z < operand_b.z)
+end
+
+--- Returns true if the vector is less than or equal to another vector.
+function vector_mt.__le(operand_a, operand_b)
+	if (type(operand_a) == "number") then
+		return (operand_a <= operand_b.x) or (operand_a <= operand_b.y) or (operand_a <= operand_b.z)
+	end
+
+	if (type(operand_b) == "number") then
+		return (operand_a.x <= operand_b) or (operand_a.y <= operand_b) or (operand_a.z <= operand_b)
+	end
+
+	return (operand_a.x <= operand_b.x) or (operand_a.y <= operand_b.y) or (operand_a.z <= operand_b.z)
+end
+
+--- Add a vector to another vector.
+function vector_mt.__add(operand_a, operand_b)
+	if (type(operand_a) == "number") then
+		return vector(
+			operand_a + operand_b.x,
+			operand_a + operand_b.y,
+			operand_a + operand_b.z
+		)
+	end
+
+	if (type(operand_b) == "number") then
+		return vector(
+			operand_a.x + operand_b,
+			operand_a.y + operand_b,
+			operand_a.z + operand_b
+		)
+	end
+
+	return vector(
+		operand_a.x + operand_b.x,
+		operand_a.y + operand_b.y,
+		operand_a.z + operand_b.z
+	)
+end
+
+--- Subtract a vector from another vector.
+function vector_mt.__sub(operand_a, operand_b)
+	if (type(operand_a) == "number") then
+		return vector(
+			operand_a - operand_b.x,
+			operand_a - operand_b.y,
+			operand_a - operand_b.z
+		)
+	end
+
+	if (type(operand_b) == "number") then
+		return vector(
+			operand_a.x - operand_b,
+			operand_a.y - operand_b,
+			operand_a.z - operand_b
+		)
+	end
+
+	return vector(
+		operand_a.x - operand_b.x,
+		operand_a.y - operand_b.y,
+		operand_a.z - operand_b.z
+	)
+end
+
+--- Multiply a vector with another vector.
+function vector_mt.__mul(operand_a, operand_b)
+	if (type(operand_a) == "number") then
+		return vector(
+			operand_a * operand_b.x,
+			operand_a * operand_b.y,
+			operand_a * operand_b.z
+		)
+	end
+
+	if (type(operand_b) == "number") then
+		return vector(
+			operand_a.x * operand_b,
+			operand_a.y * operand_b,
+			operand_a.z * operand_b
+		)
+	end
+
+	return vector(
+		operand_a.x * operand_b.x,
+		operand_a.y * operand_b.y,
+		operand_a.z * operand_b.z
+	)
+end
+
+--- Divide a vector by another vector.
+function vector_mt.__div(operand_a, operand_b)
+	if (type(operand_a) == "number") then
+		return vector(
+			operand_a / operand_b.x,
+			operand_a / operand_b.y,
+			operand_a / operand_b.z
+		)
+	end
+
+	if (type(operand_b) == "number") then
+		return vector(
+			operand_a.x / operand_b,
+			operand_a.y / operand_b,
+			operand_a.z / operand_b
+		)
+	end
+
+	return vector(
+		operand_a.x / operand_b.x,
+		operand_a.y / operand_b.y,
+		operand_a.z / operand_b.z
+	)
+end
+
+--- Raised a vector to the power of another vector.
+function vector_mt.__pow(operand_a, operand_b)
+	if (type(operand_a) == "number") then
+		return vector(
+			math.pow(operand_a, operand_b.x),
+			math.pow(operand_a, operand_b.y),
+			math.pow(operand_a, operand_b.z)
+		)
+	end
+
+	if (type(operand_b) == "number") then
+		return vector(
+			math.pow(operand_a.x, operand_b),
+			math.pow(operand_a.y, operand_b),
+			math.pow(operand_a.z, operand_b)
+		)
+	end
+
+	return vector(
+		math.pow(operand_a.x, operand_b.x),
+		math.pow(operand_a.y, operand_b.y),
+		math.pow(operand_a.z, operand_b.z)
+	)
+end
+
+--- Performs a modulo operation on a vector with another vector.
+function vector_mt.__mod(operand_a, operand_b)
+	if (type(operand_a) == "number") then
+		return vector(
+			operand_a % operand_b.x,
+			operand_a % operand_b.y,
+			operand_a % operand_b.z
+		)
+	end
+
+	if (type(operand_b) == "number") then
+		return vector(
+			operand_a.x % operand_b,
+			operand_a.y % operand_b,
+			operand_a.z % operand_b
+		)
+	end
+
+	return vector(
+		operand_a.x % operand_b.x,
+		operand_a.y % operand_b.y,
+		operand_a.z % operand_b.z
+	)
+end
+
+--- Perform a unary minus operation on the vector.
+function vector_mt.__unm(operand_a)
+	return vector(
+		-operand_a.x,
+		-operand_a.y,
+		-operand_a.z
+	)
+end
+
+--- Returns the vector's 2 dimensional length squared.
+--- @return number
+function vector_c:length2_squared()
+	return (self.x * self.x) + (self.y * self.y);
+end
+
+--- Return's the vector's 2 dimensional length.
+--- @return number
+function vector_c:length2()
+	return math.sqrt(self:length2_squared())
+end
+
+--- Returns the vector's 3 dimensional length squared.
+--- @return number
+function vector_c:length_squared()
+	return (self.x * self.x) + (self.y * self.y) + (self.z * self.z);
+end
+
+--- Return's the vector's 3 dimensional length.
+--- @return number
+function vector_c:length()
+	return math.sqrt(self:length_squared())
+end
+
+--- Returns the vector's dot product.
+--- @param b vector_c
+--- @return number
+function vector_c:dot_product(b)
+	return (self.x * b.x) + (self.y * b.y) + (self.z * b.z)
+end
+
+--- Returns the vector's cross product.
+--- @param b vector_c
+--- @return vector_c
+function vector_c:cross_product(b)
+	return vector(
+		(self.y * b.z) - (self.z * b.y),
+		(self.z * b.x) - (self.x * b.z),
+		(self.x * b.y) - (self.y * b.x)
+	)
+end
+
+--- Returns the 2 dimensional distance between the vector and another vector.
+--- @param destination vector_c
+--- @return number
+function vector_c:distance2(destination)
+	return (destination - self):length2()
+end
+
+--- Returns the 3 dimensional distance between the vector and another vector.
+--- @param destination vector_c
+--- @return number
+function vector_c:distance(destination)
+	return (destination - self):length()
+end
+
+--- Returns the distance on the X axis between the vector and another vector.
+--- @param destination vector_c
+--- @return number
+function vector_c:distance_x(destination)
+	return math.abs(self.x - destination.x)
+end
+
+--- Returns the distance on the Y axis between the vector and another vector.
+--- @param destination vector_c
+--- @return number
+function vector_c:distance_y(destination)
+	return math.abs(self.y - destination.y)
+end
+
+--- Returns the distance on the Z axis between the vector and another vector.
+--- @param destination vector_c
+--- @return number
+function vector_c:distance_z(destination)
+	return math.abs(self.z - destination.z)
+end
+
+--- Returns true if the vector is within the given distance to another vector.
+--- @param destination vector_c
+--- @param distance number
+--- @return boolean
+function vector_c:in_range(destination, distance)
+	return self:distance(destination) <= distance
+end
+
+--- Clamps the vector's coordinates to whole numbers. Equivalent to "vector:round" with no precision.
+--- @return void
+function vector_c:round_zero()
+	self.x = math.floor(self.x + 0.5)
+	self.y = math.floor(self.y + 0.5)
+	self.z = math.floor(self.z + 0.5)
+end
+
+--- Round the vector's coordinates.
+--- @param precision number
+--- @return void
+function vector_c:round(precision)
+	self.x = math.round(self.x, precision)
+	self.y = math.round(self.y, precision)
+	self.z = math.round(self.z, precision)
+end
+
+--- Clamps the vector's coordinates to the nearest base.
+--- @param base number
+--- @return void
+function vector_c:round_base(base)
+	self.x = base * math.round(self.x / base)
+	self.y = base * math.round(self.y / base)
+	self.z = base * math.round(self.z / base)
+end
+
+--- Clamps the vector's coordinates to whole numbers. Equivalent to "vector:round" with no precision.
+--- @return vector_c
+function vector_c:rounded_zero()
+	return vector(
+		math.floor(self.x + 0.5),
+		math.floor(self.y + 0.5),
+		math.floor(self.z + 0.5)
+	)
+end
+
+--- Round the vector's coordinates.
+--- @param precision number
+--- @return vector_c
+function vector_c:rounded(precision)
+	return vector(
+		math.round(self.x, precision),
+		math.round(self.y, precision),
+		math.round(self.z, precision)
+	)
+end
+
+--- Clamps the vector's coordinates to the nearest base.
+--- @param base number
+--- @return vector_c
+function vector_c:rounded_base(base)
+	return vector(
+		base * math.round(self.x / base),
+		base * math.round(self.y / base),
+		base * math.round(self.z / base)
+	)
+end
+
+--- Normalize the vector.
+--- @return void
+function vector_c:normalize()
+	local length = self:length()
+
+	-- Prevent possible divide-by-zero errors.
+	if (length ~= 0) then
+		self.x = self.x / length
+		self.y = self.y / length
+		self.z = self.z / length
+	else
+		self.x = 0
+		self.y = 0
+		self.z = 1
+	end
+end
+
+--- Returns the normalized length of a vector.
+--- @return number
+function vector_c:normalized_length()
+	return self:length()
+end
+
+--- Returns a copy of the vector, normalized.
+--- @return vector_c
+function vector_c:normalized()
+	local length = self:length()
+
+	if (length ~= 0) then
+		return vector(
+			self.x / length,
+			self.y / length,
+			self.z / length
+		)
+	else
+		return vector(0, 0, 1)
+	end
+end
+
+--- Returns a new 2 dimensional vector of the original vector when mapped to the screen, or nil if the vector is off-screen.
+--- @return vector_c
+function vector_c:to_screen(only_within_screen_boundary)
+	local x, y = renderer.world_to_screen(self.x, self.y, self.z)
+
+	if (x == nil or y == nil) then
+		return nil
+	end
+
+	if (only_within_screen_boundary == true) then
+		local screen_x, screen_y = client.screen_size()
+
+		if (x < 0 or x > screen_x or y < 0 or y > screen_y) then
+			return nil
+		end
+	end
+
+	return vector(x, y)
+end
+
+--- Returns the magnitude of the vector, use this to determine the speed of the vector if it's a velocity vector.
+--- @return number
+function vector_c:magnitude()
+	return math.sqrt(
+		math.pow(self.x, 2) +
+			math.pow(self.y, 2) +
+			math.pow(self.z, 2)
+	)
+end
+
+--- Returns the angle of the vector in regards to another vector.
+--- @param destination vector_c
+--- @return angle_c
+function vector_c:angle_to(destination)
+	-- Calculate the delta of vectors.
+	local delta_vector = vector(destination.x - self.x, destination.y - self.y, destination.z - self.z)
+
+	-- Calculate the yaw.
+	local yaw = math.deg(math.atan2(delta_vector.y, delta_vector.x))
+
+	-- Calculate the pitch.
+	local hyp = math.sqrt(delta_vector.x * delta_vector.x + delta_vector.y * delta_vector.y)
+	local pitch = math.deg(math.atan2(-delta_vector.z, hyp))
+
+	return angle(pitch, yaw)
+end
+
+--- Lerp to another vector.
+--- @param destination vector_c
+--- @param percentage number
+--- @return vector_c
+function vector_c:lerp(destination, percentage)
+	return self + (destination - self) * percentage
+end
+
+--- Internally divide a ray.
+--- @param source vector_c
+--- @param destination vector_c
+--- @param m number
+--- @param n number
+--- @return vector_c
+local function vector_internal_division(source, destination, m, n)
+	return vector((source.x * n + destination.x * m) / (m + n),
+		(source.y * n + destination.y * m) / (m + n),
+		(source.z * n + destination.z * m) / (m + n))
+end
+
+--- Returns the result of client.trace_line between two vectors.
+--- @param destination vector_c
+--- @param skip_entindex number
+--- @return number, number|nil
+function vector_c:trace_line_to(destination, skip_entindex)
+	skip_entindex = skip_entindex or -1
+
+	return client.trace_line(
+		skip_entindex,
+		self.x,
+		self.y,
+		self.z,
+		destination.x,
+		destination.y,
+		destination.z
+	)
+end
+
+--- Trace line to another vector and returns the fraction, entity, and the impact point.
+--- @param destination vector_c
+--- @param skip_entindex number
+--- @return number, number, vector_c
+function vector_c:trace_line_impact(destination, skip_entindex)
+	skip_entindex = skip_entindex or -1
+
+	local fraction, eid = client.trace_line(skip_entindex, self.x, self.y, self.z, destination.x, destination.y, destination.z)
+	local impact = self:lerp(destination, fraction)
+
+	return fraction, eid, impact
+end
+
+--- Trace line to another vector, skipping any entity indices returned by the callback and returns the fraction, entity, and the impact point.
+--- @param destination vector_c
+--- @param callback fun(eid: number): boolean
+--- @param max_traces number
+--- @return number, number, vector_c
+function vector_c:trace_line_skip_indices(destination, max_traces, callback)
+	max_traces = max_traces or 10
+
+	local fraction, eid = 0, -1
+	local impact = self
+	local i = 0
+
+	while (max_traces >= i and fraction < 1 and ((eid > -1 and callback(eid)) or impact == self)) do
+		fraction, eid, impact = impact:trace_line_impact(destination, eid)
+		i = i + 1
+	end
+
+	return self:distance(impact) / self:distance(destination), eid, impact
+end
+
+--- Traces a line from source to destination and returns the fraction, entity, and the impact point.
+--- @param destination vector_c
+--- @param skip_classes table
+--- @param skip_distance number
+--- @return number, number
+function vector_c:trace_line_skip_class(destination, skip_classes, skip_distance)
+	local should_skip = function(index, skip_entity)
+		local class_name = entity.get_classname(index) or ""
+		for i in 1, #skip_entity do
+			if class_name == skip_entity[i] then
+				return true
+			end
+		end
+
+		return false
+	end
+
+	local angles = self:angle_to(destination)
+	local direction = angles:to_forward_vector()
+
+	local last_traced_position = self
+
+	while true do  -- Start tracing.
+		local fraction, hit_entity = last_traced_position:trace_line_to(destination)
+
+		if fraction == 1 and hit_entity == -1 then  -- If we didn't hit anything.
+			return 1, -1  -- return nothing.
+		else  -- BOIS WE HIT SOMETHING.
+			if should_skip(hit_entity, skip_classes) then  -- If entity should be skipped.
+				-- Set last traced position according to fraction.
+				last_traced_position = vector_internal_division(self, destination, fraction, 1 - fraction)
+
+				-- Add a little gap per each trace to prevent inf loop caused by intersection.
+				last_traced_position = last_traced_position + direction * skip_distance
+			else  -- That's the one I want.
+				return fraction, hit_entity, self:lerp(destination, fraction)
+			end
+		end
+	end
+end
+
+--- Returns the result of client.trace_bullet between two vectors.
+--- @param eid number
+--- @param destination vector_c
+--- @return number|nil, number
+function vector_c:trace_bullet_to(destination, eid)
+	return client.trace_bullet(
+		eid,
+		self.x,
+		self.y,
+		self.z,
+		destination.x,
+		destination.y,
+		destination.z
+	)
+end
+
+--- Returns the vector of the closest point along a ray.
+--- @param ray_start vector_c
+--- @param ray_end vector_c
+--- @return vector_c
+function vector_c:closest_ray_point(ray_start, ray_end)
+	local to = self - ray_start
+	local direction = ray_end - ray_start
+	local length = direction:length()
+
+	direction:normalize()
+
+	local ray_along = to:dot_product(direction)
+
+	if (ray_along < 0) then
+		return ray_start
+	elseif (ray_along > length) then
+		return ray_end
+	end
+
+	return ray_start + direction * ray_along
+end
+
+--- Returns a point along a ray after dividing it.
+--- @param ray_end vector_c
+--- @param ratio number
+--- @return vector_c
+function vector_c:ray_divided(ray_end, ratio)
+	return (self * ratio + ray_end) / (1 + ratio)
+end
+
+--- Returns a ray divided into a number of segments.
+--- @param ray_end vector_c
+--- @param segments number
+--- @return table<number, vector_c>
+function vector_c:ray_segmented(ray_end, segments)
+	local points = {}
+
+	for i = 0, segments do
+		points[i] = vector_internal_division(self, ray_end, i, segments - i)
+	end
+
+	return points
+end
+
+--- Returns the best source vector and destination vector to draw a line on-screen using world-to-screen.
+--- @param ray_end vector_c
+--- @param total_segments number
+--- @return vector_c|nil, vector_c|nil
+function vector_c:ray(ray_end, total_segments)
+	total_segments = total_segments or 128
+
+	local segments = {}
+	local step = self:distance(ray_end) / total_segments
+	local angle = self:angle_to(ray_end)
+	local direction = angle:to_forward_vector()
+
+	for i = 1, total_segments do
+		table.insert(segments, self + (direction * (step * i)))
+	end
+
+	local src_screen_position = vector(0, 0, 0)
+	local dst_screen_position = vector(0, 0, 0)
+	local src_in_screen = false
+	local dst_in_screen = false
+
+	for i = 1, #segments do
+		src_screen_position = segments[i]:to_screen()
+
+		if src_screen_position ~= nil then
+			src_in_screen = true
+
+			break
+		end
+	end
+
+	for i = #segments, 1, -1 do
+		dst_screen_position = segments[i]:to_screen()
+
+		if dst_screen_position ~= nil then
+			dst_in_screen = true
+
+			break
+		end
+	end
+
+	if src_in_screen and dst_in_screen then
+		return src_screen_position, dst_screen_position
+	end
+
+	return nil
+end
+
+--- Returns true if the ray goes through a smoke. False if not.
+--- @param ray_end vector_c
+--- @return boolean
+function vector_c:ray_intersects_smoke(ray_end)
+	if (line_goes_through_smoke == nil) then
+		error("Unsafe scripts must be allowed in order to use vector_c:ray_intersects_smoke")
+	end
+
+	return line_goes_through_smoke(self.x, self.y, self.z, ray_end.x, ray_end.y, ray_end.z, 1)
+end
+
+--- Returns true if the vector lies within the boundaries of a given 2D polygon. The polygon is a table of vectors. The Z axis is ignored.
+--- @param polygon table<any, vector_c>
+--- @return boolean
+function vector_c:inside_polygon2(polygon)
+	local odd_nodes = false
+	local polygon_vertices = #polygon
+	local j = polygon_vertices
+
+	for i = 1, polygon_vertices do
+		if (polygon[i].y < self.y and polygon[j].y >= self.y or polygon[j].y < self.y and polygon[i].y >= self.y) then
+			if (polygon[i].x + (self.y - polygon[i].y) / (polygon[j].y - polygon[i].y) * (polygon[j].x - polygon[i].x) < self.x) then
+				odd_nodes = not odd_nodes
+			end
+		end
+
+		j = i
+	end
+
+	return odd_nodes
+end
+
+local resolver_c = {}
+local resolver_mt = {
+    __index = resolver_c
+}
+
+local x = 1
+
+function resolver_c.setup()
+    return setmetatable( {
+        miss_reason = {},
+        entity_data = {},
+        animstate_data = {},
+        animlayer_data = {},
+        freestand_data = {},
+		misses = 1,
+		hit = 1,
+		shots = 1,
+    }, resolver_mt )
+end
+
+function resolver_c:reset()
+
+    self.miss_reason = {}
+    self.entity_data = {}
+    self.animstate_data = {}
+    self.animlayer_data = {}
+    self.freestand_data = {}
+
+end
+
+function resolver_c:GetAnimationState(_Entity)
+    if not (_Entity) then
+        return
+    end
+    local player_ptr = ffi.cast( "void***", get_client_entity(ientitylist, _Entity))
+    local animstate_ptr = ffi.cast( "char*" , player_ptr ) + 0x3914
+    local state = ffi.cast( "struct c_animstate**", animstate_ptr )[0]
+
+    return state
+end
+
+function GetAnimationState1(_Entity)
+    if not (_Entity) then
+        return
+    end
+    local player_ptr = ffi.cast( "void***", get_client_entity(ientitylist, _Entity))
+    local animstate_ptr = ffi.cast( "char*" , player_ptr ) + 0x3914
+    local state = ffi.cast( "struct c_animstate**", animstate_ptr )[0]
+
+    return state
+end
+
+function GetPlayerMaxFeetYaw1(_Entity)
+    local S_animationState_t = GetAnimationState1(_Entity)
+    local nDuckAmount = S_animationState_t.m_fDuckAmount
+    local nFeetSpeedForwardsOrSideWays = math.max(0, math.min(1, S_animationState_t.m_flFeetSpeedForwardsOrSideWays))
+    local nFeetSpeedUnknownForwardOrSideways = math.max(1, S_animationState_t.m_flFeetSpeedUnknownForwardOrSideways)
+    local nValue =
+        (S_animationState_t.m_flStopToFullRunningFraction * -0.30000001 - 0.19999999) * nFeetSpeedForwardsOrSideWays +
+        1
+    if nDuckAmount > 0 then
+        nValue = nValue + nDuckAmount * nFeetSpeedUnknownForwardOrSideways * (0.5 - nValue)
+    end
+    local nDeltaYaw = S_animationState_t.m_flMaxYaw * nValue
+    return nDeltaYaw < 60 and nDeltaYaw >= 0 and nDeltaYaw or 0
+end
+
+function resolver_c:GetPlayerMaxFeetYaw(_Entity)
+    local S_animationState_t = self:GetAnimationState(_Entity)
+    local nDuckAmount = S_animationState_t.m_fDuckAmount
+    local nFeetSpeedForwardsOrSideWays = math.max(0, math.min(1, S_animationState_t.m_flFeetSpeedForwardsOrSideWays))
+    local nFeetSpeedUnknownForwardOrSideways = math.max(1, S_animationState_t.m_flFeetSpeedUnknownForwardOrSideways)
+    local nValue =
+        (S_animationState_t.m_flStopToFullRunningFraction * -0.30000001 - 0.19999999) * nFeetSpeedForwardsOrSideWays +
+        1
+    if nDuckAmount > 0 then
+        nValue = nValue + nDuckAmount * nFeetSpeedUnknownForwardOrSideways * (0.5 - nValue)
+    end
+    local nDeltaYaw = S_animationState_t.m_flMaxYaw * nValue
+    return nDeltaYaw < 15 and nDeltaYaw >= 15 and nDeltaYaw or 15
+end
+
+function resolver_c:on_miss(handle)
+	local hitgroup_names = {
+		"generic",
+		"head",
+		"chest",
+		"stomach",
+		"left arm",
+		"right arm",
+		"left leg",
+		"right leg",
+		"neck",
+		"gear",
+	}--hitgroup_names[e.hitgroup + 1] or "?"
+    if handle.reason ~= "?" then 
+        return
+	end
+	
+	self.misses = self.misses + 1
+
+    if not self.entity_data[handle.target] then
+        self.entity_data[handle.target] = {}
+    end
+
+    if not self.miss_reason[handle.target] then 
+        self.miss_reason[handle.target] = {}
+    end
+
+    local miss_count = self.entity_data[handle.target].miss or 0
+
+    self.entity_data[handle.target].miss = miss_count + 1
+
+    local miss_data = handle
+
+    local ent_name = entity.get_player_name(handle.target)
+
+    miss_data.name = ent_name
+
+    local yaw = (entity.get_prop(handle.target, "m_flPoseParameter", 11) or 0) * 116 - 58
+
+    local should_fix = self.entity_data[handle.target].miss > 2 and self.entity_data[handle.target].miss < 5
+
+    self.miss_reason[handle.target].count = self.entity_data[handle.target].miss
+    self.miss_reason[handle.target].reason = self.entity_data[handle.target].miss > 2 and (string.format("lowdelta: %s", yaw) or "?") or "?"
+
+    local fix_value = 26*(self.entity_data[handle.target].miss % 2 == 0 and -1 or 1)
+end
+
+function resolver_c:on_hit(handle)
+	self.hit = self.hit + 1
+end
+
+function resolver_c:on_fire(handle)
+	self.shots = self.shots + 1
+end
+
+		bruteforce_phases = {
+            -- Standing players
+            standing = {
+                [1] = 0,
+				[2] = 15,
+				[3] = -15,
+				[4] = 0
+			},
+			moving = {
+				[1] = 0,
+				[2] = 15,
+				[3] = -15,
+				[4] = 0
+			},
+			slowwalk = {
+                [1] = 0,
+				[2] = 15,
+				[3] = -15,
+				[4] = 0
+			},
+			pressing_e = {
+				[1] = 0,
+				[2] = 0,
+				[3] = 0,
+				[4] = 0,
+			},
+			onshot = {
+				[1] = 60,
+				[2] = -60,
+				[3] = 0,
+			},
+        }
+
+
+
+		
+		--standing
+		if standing then
+			fix_value = bruteforce_phases.standing[calculate_phase]*calculate_invert*calculate_angles
+			state = "standing"
+		end
+		--moving
+		if moving then
+			fix_value = bruteforce_phases.moving[calculate_phase]*calculate_invert*calculate_angles
+			state = "moving"
+		end
+		--slowwalk
+		if slowwalk then
+			fix_value = bruteforce_phases.slowwalk[calculate_phase]
+			state = "slowwalk"
+		end
+		--in air
+		if air then
+			fix_value = bruteforce_phases.air[calculate_phase]*calculate_invert*calculate_angles
+			state = "in air"
+		end
+		--e peek
+		if pressing_e then
+			fix_value = bruteforce_phases.pressing_e[calculate_phase]*calculate_invert*calculate_angles
+			state = "e"
+		end
+		--e peek
+		if onshot then
+			fix_value = bruteforce_phases.onshot[calculate_phase]*calculate_invert*calculate_angles
+			state = "fired"
+		end
+		--forward
+		if sideways_forward then
+			fix_value = (max_yaw/2 + (max_yaw/4))*calculate_invert*calculate_angles*(-2)
+			state = "forward"
+		end
+		--sideways
+		if sideways_left_right then
+			fix_value = (max_yaw/2 - 4)*calculate_invert*calculate_angles
+			state = "left/right"
+		end
